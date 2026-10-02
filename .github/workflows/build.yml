@@ -1,39 +1,47 @@
 name: Build Android APK
 
 on:
-push:
-branches: [ main ]
+  push:
+    branches:
+      - main
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-- name: Checkout code
-uses: actions/checkout@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-- name: Set up Node.js
-uses: actions/setup-node@v3
-with:
-node-version: '18'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
 
-- name: Install Cordova
-run: npm install -g cordova
+      - name: Install Cordova
+        run: npm install -g cordova
 
-- name: Create Cordova Project
-run: |
-cordova create myApp com.example.app NBUC
-cd myApp
-cp -r ../* www/ 2>/dev/null || :
-cordova platform add android
+      - name: Create Cordova Project
+        shell: bash
+        run: |
+          cordova create myApp com.example.app NBUC
 
-- name: Build APK
-run: |
-cd myApp
-cordova build android --release
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='myApp' \
+            ./ myApp/www/
 
-- name: Upload APK
-uses: actions/upload-artifact@v3
-with:
-name: app-release-unsigned
-path: myApp/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          cd myApp
+          cordova platform add android
+
+      - name: Build APK
+        working-directory: myApp
+        run: |
+          cordova build android --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-unsigned
+          path: myApp/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
